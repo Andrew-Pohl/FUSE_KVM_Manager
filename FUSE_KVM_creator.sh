@@ -71,15 +71,13 @@ echo "$PASSWORD" | sudo -S chmod 777 /home/"$USER"/fuse-validator/quickstart.sh;
 ls;
 EOF
 
-#send over your .env file to the kvm
+send over your .env file to the kvm
 sshpass -p "$PASSWORD" scp .env "$USER"@"$IP":/home/"$USER"/fuse-validator
 
-#start the quickstart
-sshpass -p "$PASSWORD" ssh -T "$USER"@"$IP" << EOF
-cd fuse-validator; 
-echo "$PASSWORD" | sudo -S /home/"$USER"/fuse-validator/quickstart.sh;
-echo "$PASSWORD" | sudo -S /home/"$USER"/fuse-validator/quickstart.sh;
-EOF
+sshpass -p "$PASSWORD" ssh -t "$USER"@"$IP" "cd fuse-validator &&  sudo -S ./quickstart.sh"
+sshpass -p "$PASSWORD" ssh -t "$USER"@"$IP" "cd fuse-validator &&  sudo -S ./quickstart.sh"
+
+echo ""$new" has been setup and is validating"
 
 echo ""$new","$IP",0" >> $INPUT
 
