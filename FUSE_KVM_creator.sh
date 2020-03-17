@@ -28,9 +28,9 @@ echo "new vlaidator KVM: $new"
 #install the new kvm
 virt-install \
 --name "$new" \
---ram 2200 \
+--ram 2048 \
 --disk path=/var/lib/libvirt/images/"$new".img,size=25 \
---vcpus 1 \
+--vcpus 3 \
 --virt-type kvm \
 --os-type linux \
 --os-variant ubuntu18.04 \
