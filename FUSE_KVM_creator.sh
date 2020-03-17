@@ -47,8 +47,6 @@ IP=$(arp -a | grep $MAC | awk '{ print $2 }' | sed 's/[()]//g')
 
 echo "IP OF $new IS $IP"
 
-echo ""$new","$IP",0" >> $INPUT
-
 USER='ubuntu'
 PASSWORD='ChangeMe'
 
@@ -82,4 +80,6 @@ cd fuse-validator;
 echo "$PASSWORD" | sudo -S /home/"$USER"/fuse-validator/quickstart.sh;
 echo "$PASSWORD" | sudo -S /home/"$USER"/fuse-validator/quickstart.sh;
 EOF
+
+echo ""$new","$IP",0" >> $INPUT
 
