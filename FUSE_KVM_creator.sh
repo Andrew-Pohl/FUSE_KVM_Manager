@@ -5,6 +5,8 @@ IFS=','
 LASTVALIDATORINLIST=''
 
 #download script depends
+sudo apt-get update
+
 sudo apt-get install -y virt-manager
 sudo apt-get install -y sshpass
 
@@ -25,12 +27,23 @@ new="v$((stripped + 1))"
 
 echo "new vlaidator KVM: $new"
 
+cpuCores=$(nproc --all)
+echo "cores = $cpuCores"
+
+vcpus=3
+
+if [ "$cpuCores" -lt "$vcpus" ]; then
+	vcpus=$cpuCores
+fi
+
+echo "using $vcpus cores"
+
 #install the new kvm
 virt-install \
 --name "$new" \
 --ram 2048 \
 --disk path=/var/lib/libvirt/images/"$new".img,size=25 \
---vcpus 3 \
+--vcpus "$vcpus" \
 --virt-type kvm \
 --os-type linux \
 --os-variant ubuntu18.04 \
@@ -40,6 +53,8 @@ virt-install \
 --wait=-1 \
 --initrd-inject=ks-1804-minimalvm.cfg \
 --extra-args "ks=file:/ks-1804-minimalvm.cfg console=tty0 console=ttyS0,115200n8"
+
+sleep 1m
 
 #pull the ip address from the mac address of the new vm
 MAC=$(virsh domiflist $new | awk '{ print $5 }' | tail -2 | head -1)
