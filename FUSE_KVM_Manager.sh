@@ -35,8 +35,11 @@ function pullAndUpdateEnv()
   echo "initalising the .env file for new validator"
   wget -O .env https://raw.githubusercontent.com/fuseio/fuse-network/master/scripts/examples/.env.validator.example
   sed -i "s/^PERMISSION_PREFIX.*/PERMISSION_PREFIX=\"sudo\"/" ".env"
-  read -p "please input your infura Eth endpoint address (https://mainnet.infura.....): " infura
-  sed -i "s/^FOREIGN_RPC_URL.*/FOREIGN_RPC_URL=$infura/" ".env"
+  read -p "please input your infura Eth endpoint KEY address (https://mainnet.infura.io/v3/<KEY>): " infura
+  echo "$infura"
+  infuraLink='https:\/\/mainnet.infura.io\/v3\/'
+  sed -i "s/^FOREIGN_RPC_URL.*/FOREIGN_RPC_URL=$infuraLink$infura/" ".env"
+  exit 1
 }
 
 function setup()
