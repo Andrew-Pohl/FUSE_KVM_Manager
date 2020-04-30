@@ -39,7 +39,6 @@ function pullAndUpdateEnv()
   echo "$infura"
   infuraLink='https:\/\/mainnet.infura.io\/v3\/'
   sed -i "s/^FOREIGN_RPC_URL.*/FOREIGN_RPC_URL=$infuraLink$infura/" ".env"
-  exit 1
 }
 
 function setup()
