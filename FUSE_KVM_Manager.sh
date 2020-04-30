@@ -213,7 +213,7 @@ function createBackupFolder()
       # Take action if $DIR exists. #
       echo "backup for $currentValidator already exsists"
       dirExists='yes'
-      if [[ $writeOver != "yes" ]];
+      if [[ $writeOver == "yes" ]];
       then
         rm -rf "../decryptedBackup/$currentValidator"
       else
