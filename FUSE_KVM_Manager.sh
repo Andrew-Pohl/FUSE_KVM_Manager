@@ -1,11 +1,27 @@
 #!/bin/bash
 INPUT=validator_list.csv
+TELEGRAM_DETAILS=telegram.txt
+TELEGRAM_CHAT_ID=''
+TELEGRAM_BOT_KEY=''
 OLDIFS=$IFS
 IFS=','
 LASTVALIDATORINLIST=''
 IP=''
 USER='ubuntu'
 PASSWORD='ChangeMe'
+USE_TELEGRAM_BOT='no'
+
+function telegramSendMessage()
+{
+  #expects one argument, of the message text
+  local messageTxt=$1
+
+  #first check we have our bot settings configured!
+  if [[ $USE_TELEGRAM_BOT == 'yes' ]]
+  then
+    curl -s "https://api.telegram.org/bot$TELEGRAM_BOT_KEY/sendMessage?chat_id=$TELEGRAM_CHAT_ID&text=$messageTxt" > /dev/null
+  fi
+}
 
 function unencrypt()
 {
@@ -41,6 +57,51 @@ function pullAndUpdateEnv()
   sed -i "s/^FOREIGN_RPC_URL.*/FOREIGN_RPC_URL=$infuraLink$infura/" ".env"
 }
 
+function configureTelegramBot()
+{
+  if [[ -f $TELEGRAM_DETAILS ]];
+  then
+    echo "reading telegram bot settings"
+    SAVEIFS=$IFS   # Save current IFS
+    IFS="="
+    while read -r key value
+    do
+       if [[ $key == "CHAT_ID" ]];
+       then
+         TELEGRAM_CHAT_ID=$value
+       elif [[ $key == "BOT_KEY" ]];
+       then
+         TELEGRAM_BOT_KEY=$value
+       fi
+    done < $TELEGRAM_DETAILS
+    IFS=$SAVEIFS   # Restore IFS
+  else
+    configBot="no"
+    read -p "Do you want to configure you're telegram bot? [Y/N]" yn
+    case $yn in
+      [Yy]* ) configBot="yes"; break;;
+      [Nn]* ) configBot="no"; break;;
+      * ) echo "Please answer yes or no.";;
+    esac
+    if [[ $configBot == "yes" ]];
+    then
+      read -p "Please enter your bots chat key: " TELEGRAM_BOT_KEY
+      read -p "Please enter your chat id: " TELEGRAM_CHAT_ID
+      echo "CHAT_ID=$TELEGRAM_CHAT_ID" >> $TELEGRAM_DETAILS
+      echo "BOT_KEY=$TELEGRAM_BOT_KEY" >> $TELEGRAM_DETAILS
+      USE_TELEGRAM_BOT='yes'
+      echo "I just sent you a message can you see it?"
+      telegramSendMessage "HEY, thanks for configuring me we're going to be good friends! :)"
+    fi
+  fi
+
+  if [[ $TELEGRAM_CHAT_ID != '' && $TELEGRAM_BOT_KEY != '' ]];
+  then
+    echo "BOT configured"
+    USE_TELEGRAM_BOT='yes'
+  fi
+}
+
 function setup()
 {
   #download script depends
@@ -49,7 +110,10 @@ function setup()
   sudo apt-get install -y virt-manager
   sudo apt-get install -y sshpass
   sudo apt-get install -y encfs
+  
+  configureTelegramBot
 }
+
 
 function createAndRunKVM()
 {
@@ -146,6 +210,8 @@ EOF
   echo ""$new" has been setup and is validating"
 
   echo ""$new","$IP",0" >> $INPUT
+
+  telegramSendMessage "New KVM $new has been setup and started :)"
 }
 
 function updateKVMs()
@@ -164,6 +230,7 @@ sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USER"@"$IP" << EOF
 EOF
   done < $INPUT
   IFS=$OLDIFS
+  telegramSendMessage "Finished updating all KVMs :)"
 }
 
 function grabNamesFromList()
@@ -253,6 +320,8 @@ function restoreFromBackup()
     d=${d//"/"}
     createAndRunKVM "$d"
   done
+
+  telegramSendMessage "All KVMs have been restored :)"
 }
 
 setup
