@@ -37,4 +37,14 @@ backup" when prompted, this will create the folders copy across the previously b
 Then simply press 4 - "Restore from KVM backup" when prompted. This will recurse through the backed up files, create a KVM
 instance with the backed up config and start them validating! - this can take upto 15mins per kvm. Once done re-encrypt
 the folders on your new host server press 8 - "Encrypt Backup" in the manager. 
- 
+
+# Telegram Message Bot
+The script can interact with the telegram API to send you handy status messages. On boot if not configured the script will
+prompt you to set up a telegram bot (this is optional). To set up a new bot follow these instruction in Brice Johnsons blog
+post [here](https://blog.bj13.us/2016/09/06/how-to-send-yourself-a-telegram-message-from-bash.html). It's simple!, once 
+configured the script will store the bot and chat keys to a text file so they can be used again.
+
+# Watch this space...
+I'm currently porting my system watcher app into bash and making it KVM friendly the manager will be able to configure 
+the thresholds and a cron job so it gets launched at regular intervals. The telegram bot will handle the alert forwarding
+and inbound requests (removing the need for a gmail account).   
