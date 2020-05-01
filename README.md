@@ -44,6 +44,18 @@ prompt you to set up a telegram bot (this is optional). To set up a new bot foll
 post [here](https://blog.bj13.us/2016/09/06/how-to-send-yourself-a-telegram-message-from-bash.html). It's simple!, once 
 configured the script will store the bot and chat keys to a text file so they can be used again.
 
+# How to use with KVMs setup outside the script
+I have added a mechanisum to use the KVM manager on KVMs which have been configured outside of the script. Simply manual
+add your KVMs to the list file:
+```
+KVM_NAME = the name used when configuring the KVM (virsh list will give you a complete list)
+IP_ADDR & ETH_ADDR = just set these to 0 or 1... they are not currently used
+DEFAULT_PASSWORD = Set this to "no" this will prompt the script to ask for the KVM user name and password when/if it needs them
+```
+
+Note: please leave the v0,1,1,yes line at the bottom!. These a bug in the script that means it won't be able to create new
+KVMs without it. Will fix this shortly :)
+
 # Watch this space...
 I'm currently porting my system watcher app into bash and making it KVM friendly the manager will be able to configure 
 the thresholds and a cron job so it gets launched at regular intervals. The telegram bot will handle the alert forwarding
