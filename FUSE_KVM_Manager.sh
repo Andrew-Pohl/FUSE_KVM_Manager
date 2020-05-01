@@ -9,6 +9,8 @@ LASTVALIDATORINLIST=''
 IP=''
 USER='ubuntu'
 PASSWORD='ChangeMe'
+DEFAULT_PASSWORD='ChangeMe'
+DEFAULT_USER='ubuntu'
 USE_TELEGRAM_BOT='no'
 
 function telegramSendMessage()
@@ -133,7 +135,13 @@ function createAndRunKVM()
   #strip the v off the front of the kvm name
   stripped="${LASTVALIDATORINLIST:1:${#LASTVALIDATORINLIST}-1}"
 
-  new="v$((stripped + 1))"
+  new=''
+  if [[ $arg1 != "" ]];
+  then
+    new=$arg1
+  else
+    new="v$((stripped + 1))"
+  fi
 
   echo "new vlaidator KVM: $new"
 
@@ -209,7 +217,7 @@ EOF
 
   echo ""$new" has been setup and is validating"
 
-  echo ""$new","$IP",0" >> $INPUT
+  echo ""$new","$IP",0,yes" >> $INPUT
 
   telegramSendMessage "New KVM $new has been setup and started :)"
 }
@@ -218,16 +226,25 @@ function updateKVMs()
 {
   #this assumes that all KVMs have been setup with this script i.e. has the same file structure and usernames
   [ ! -f $INPUT ] && { echo "$INPUT file not found"; exit 99; }
-  while read validator ip ethaddr
+  while read validator ip ethaddr defaultPassword
   do
     currentValidator=$validator
     getIP $currentValidator
+    if [[ $defaultPassword == 'no' ]];
+    then
+      read -p "Please enter the username for $currentValidator: " tempUser
+      read -p -s "Please enter the password for $currentValidator: " tempPass
+      PASSWORD=$tempPass
+      USER=$tempUser
+    fi
     echo "IP OF $currentValidator IS $IP"
 sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USER"@"$IP" << EOF
       echo "$PASSWORD" | sudo -S wget -O /home/"$USER"/fuse-validator/quickstart.sh https://raw.githubusercontent.com/fuseio/fuse-network/master/scripts/quickstart.sh;
       echo "$PASSWORD" | sudo -S chmod 777 /home/"$USER"/fuse-validator/quickstart.sh;
       echo "$PASSWORD" | sudo -S ./quickstart.sh"
 EOF
+    PASSWORD=$DEFAULT_PASSWORD
+    USER=$DEFAULT_USER
   done < $INPUT
   IFS=$OLDIFS
   telegramSendMessage "Finished updating all KVMs :)"
@@ -270,8 +287,9 @@ function createBackupFolder()
       * ) echo "Please answer yes or no.";;
   esac
   
-  while read validator ip ethaddr
+  while read validator ip ethaddr defaultPassword
   do
+    	  
     skip="no"
     currentValidator=$validator
     #check if the folder for this validator exsists
@@ -291,6 +309,14 @@ function createBackupFolder()
     
     if [[ $skip != "yes" ]];
     then
+      if [[ $defaultPassword == 'no' ]];
+      then
+        read -p "Please enter the username for $currentValidator: " tempUser
+        read -p -s "Please enter the password for $currentValidator: " tempPass
+        PASSWORD=$tempPass
+        USER=$tempUser
+      fi
+	    
       getIP $currentValidator
       echo "IP OF $currentValidator IS $IP"
 sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USER"@"$IP" << EOF
@@ -304,7 +330,9 @@ EOF
 sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USER"@"$IP" << EOF
     echo "$PASSWORD" | sudo -S rm -r /home/"$USER"/config
 EOF
-
+    
+    PASSWORD=$DEFAULT_PASSWORD
+    USER=$DEFAULT_USER
     fi
   done < $INPUT
   
