@@ -1,0 +1,5 @@
+RAM=100
+HDD=500
+ETHBalance=0.05
+CPU=70
+RunEvery=1m
