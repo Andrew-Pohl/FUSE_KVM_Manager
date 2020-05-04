@@ -1,8 +1,8 @@
 #!/bin/bash
-INPUT=validator_list.csv
-TELEGRAM_DETAILS=telegram.txt
-MONITOR_SETTINGS=monitor_settings.txt
-REPORT_FILE=monitorReport.csv #CPU,RAM,HDD,ETH,Dockers
+INPUT=settings/validator_list.csv
+TELEGRAM_DETAILS=settings/telegram.txt
+MONITOR_SETTINGS=settings/monitor_settings.txt
+REPORT_FILE=logs/monitorReport.csv #CPU,RAM,HDD,ETH,Dockers
 TELEGRAM_CHAT_ID=''
 TELEGRAM_BOT_KEY=''
 OLDIFS=$IFS
@@ -266,10 +266,10 @@ function CheckValidatiors()
                 sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USER"@"$IP" >/dev/null  << EOF
    		 echo "$PASSWORD" | sudo -S docker ps > dockerOutput.txt;
 EOF
-		sshpass -p "$PASSWORD" scp "$USER"@"$IP":/home/"$USER"/dockerOutput.txt dockerOutput.txt
+		sshpass -p "$PASSWORD" scp "$USER"@"$IP":/home/"$USER"/dockerOutput.txt temp/dockerOutput.txt
 		sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USER"@"$IP" 'rm -f dockerOutput.txt'
-		temp=$(cat dockerOutput.txt)
-		containers=$(awk '{if(NR>1) print $NF}' dockerOutput.txt)
+		temp=$(cat temp/dockerOutput.txt)
+		containers=$(awk '{if(NR>1) print $NF}' temp/dockerOutput.txt)
 
 		SAVEIFS=$IFS   # Save current IFS
 		IFS=$'\n'      # Change IFS to new line

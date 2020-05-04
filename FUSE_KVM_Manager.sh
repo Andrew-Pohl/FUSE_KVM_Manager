@@ -1,7 +1,7 @@
 #!/bin/bash
-INPUT=validator_list.csv
-TELEGRAM_DETAILS=telegram.txt
-MONITOR_SETTINGS=monitor_settings.txt
+INPUT=settings/validator_list.csv
+TELEGRAM_DETAILS=settings/telegram.txt
+MONITOR_SETTINGS=settings/monitor_settings.txt
 TELEGRAM_CHAT_ID=''
 TELEGRAM_BOT_KEY=''
 OLDIFS=$IFS
@@ -112,6 +112,17 @@ function configureTelegramBot()
 
 function setup()
 {
+  if [[ ! -d "logs" ]]
+  then
+	  mkdir logs
+  fi
+
+  if [[ ! -d "temp" ]]
+  then
+          mkdir temp
+  fi
+
+
   #download script depends
   sudo apt-get update
 
@@ -129,13 +140,16 @@ function createAndRunKVM()
   local arg1=$1
 
   #look through the list and take the last kvm name
-  [ ! -f $INPUT ] && { echo "$INPUT file not found"; exit 99; }
-  while read validator ip ethaddr
-  do
-    LASTVALIDATORINLIST=$validator
-  done < $INPUT
-  IFS=$OLDIFS
-
+  if [ -f $INPUT ] 
+  then 
+    while read validator ip ethaddr
+    do
+      LASTVALIDATORINLIST=$validator
+    done < $INPUT
+    IFS=$OLDIFS
+  else
+    LASTVALIDATORINLIST="v0"
+  fi
   echo "The last validator in the list $LASTVALIDATORINLIST"
 
   #strip the v off the front of the kvm name
@@ -175,7 +189,7 @@ function createAndRunKVM()
   --location 'http://archive.ubuntu.com/ubuntu/dists/bionic/main/installer-amd64/' \
   --noautoconsole \
   --wait=-1 \
-  --initrd-inject=ks-1804-minimalvm.cfg \
+  --initrd-inject=settings/ks-1804-minimalvm.cfg \
   --extra-args "ks=file:/ks-1804-minimalvm.cfg console=tty0 console=ttyS0,115200n8"
 
   sleep 1m
@@ -435,12 +449,12 @@ function monitorSettings()
           [Yy]* )
 		if [ -f "monitor_pid.txt" ]; then
 			echo "closing the old monitor"
-			kill -9 `cat monitor_pid.txt`
-			rm monitor_pid.txt
+			kill -9 `cat settings/monitor_pid.txt`
+			rm settings/monitor_pid.txt
 		fi
-                nohup ./Validator_monitor.sh > monitor.log 2>&1 &
-		echo $! > monitor_pid.txt
-		echo "monitor proc ID = $(cat monitor_pid.txt)"
+                nohup ./Validator_monitor.sh > logs/monitor.log 2>&1 &
+		echo $! > settings/monitor_pid.txt
+		echo "monitor proc ID = $(cat settings/monitor_pid.txt)"
 		break
                 ;;
           [Nn]* )
@@ -525,8 +539,8 @@ do
             #stop monitor
             if [ -f "monitor_pid.txt" ]; then
                         echo "closing the old monitor"
-                        kill -9 `cat monitor_pid.txt`
-                        rm monitor_pid.txt
+                        kill -9 `cat settings/monitor_pid.txt`
+                        rm settings/monitor_pid.txt
             fi
             break
             ;;
