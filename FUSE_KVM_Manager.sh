@@ -1,6 +1,7 @@
 #!/bin/bash
 INPUT=validator_list.csv
 TELEGRAM_DETAILS=telegram.txt
+MONITOR_SETTINGS=monitor_settings.txt
 TELEGRAM_CHAT_ID=''
 TELEGRAM_BOT_KEY=''
 OLDIFS=$IFS
@@ -12,6 +13,11 @@ PASSWORD='ChangeMe'
 DEFAULT_PASSWORD='ChangeMe'
 DEFAULT_USER='ubuntu'
 USE_TELEGRAM_BOT='no'
+
+
+#text colours
+RED=`tput setaf 1`
+NC=`tput sgr0`
 
 function telegramSendMessage()
 {
@@ -352,10 +358,103 @@ function restoreFromBackup()
   telegramSendMessage "All KVMs have been restored :)"
 }
 
+function monitorSettings()
+{
+  if [[ ! -f $MONITOR_SETTINGS ]];
+  then
+    echo "Need to grab a new settings file"
+    wget -O $MONITOR_SETTINGS https://raw.githubusercontent.com/Andrew-Pohl/FUSE_KVM_Manager/monitor/monitor_settings.txt
+  fi
+
+  echo -e "\nreading monitor settings\n"
+  SAVEIFS=$IFS   # Save current IFS
+  IFS="="
+  Monitor_array=()
+  while read -r key value
+    do
+       echo "${RED}$key = $value${NC}"
+       Monitor_array+=($key)
+    done < $MONITOR_SETTINGS
+  IFS=$SAVEIFS   # Restore IFS
+  
+  PS3='Adjust settings: '
+  Monitor_array+=("Done")
+  select opt in "${Monitor_array[@]}";
+  do
+    case $opt in
+      "CPU")
+	echo "adjust CPU"
+	read -p "Set CPU alert Threshold: " temp
+	if [[ ((temp > 100)) ]]
+	then
+		temp='100'
+	elif [[ ((temp < 10)) ]]
+	then
+		temp='10'
+	fi
+	sed -i "s/^$opt.*/$opt=$temp/" "$MONITOR_SETTINGS"
+	;;
+      "RAM")
+	read -p "Set RAM alert Threshold: " temp
+	sed -i "s/^$opt.*/$opt=$temp/" "$MONITOR_SETTINGS"
+	;;
+      "ETHBalance")
+	read -p "Set ETH alert Threshold: " temp
+	sed -i "s/^$opt.*/$opt=$temp/" "$MONITOR_SETTINGS"
+        ;;
+      "HDD")
+	read -p "Set HDD alert Threshold: " temp
+	sed -i "s/^$opt.*/$opt=$temp/" "$MONITOR_SETTINGS"
+        ;;
+      "RunEvery")
+	read -p "Set Run time interval (mins or hours to follow): " temp
+	period=''
+	while [[ $period == '' ]]
+	do
+	read -p "run ever $temp min or hours? [m/h]: " mh
+	case $mh in
+      	  [Mm]* ) 
+		  period="m" 
+	         ;;
+      	  [Hh]* ) 
+		  period="h" 
+	         ;;
+      	  * ) echo "Please answer m/h";;
+    	esac
+	done
+	sed -i "s/^$opt.*/$opt=$temp$period/" "$MONITOR_SETTINGS"
+
+        ;;
+      "Done")
+	break;;
+    esac
+    done
+
+   read -p "do you want to start the monitor now [Y/N]: " runMon
+   case $runMon in
+          [Yy]* )
+		if [ -f "monitor_pid.txt" ]; then
+			echo "closing the old monitor"
+			kill -9 `cat monitor_pid.txt`
+			rm monitor_pid.txt
+		fi
+                nohup ./Validator_monitor.sh > monitor.log 2>&1 &
+		echo $! > monitor_pid.txt
+		echo "monitor proc ID = $(cat monitor_pid.txt)"
+		break
+                ;;
+          [Nn]* )
+                break
+                ;;
+          * ) echo "Please answer m/h";;
+  esac
+
+}
+
 setup
 while true; do
 PS3='Please enter your choice: '
-options=("Create a new KVM" "Update all KVMs" "Create KVM backup" "Restore from KVM backup" "List KVMs" "Get KVM IP" "Unencrypt Backup" "Encrypt Backup" "Quit")
+options=("Create a new KVM" "Update all KVMs" "Create KVM backup" "Restore from KVM backup" "List KVMs" "Get KVM IP" "Unencrypt Backup" "Encrypt Backup" "Configure and Start Monitor" "Stop Monitor"  "Quit")
 select opt in "${options[@]}";
 do
     case $opt in
@@ -413,7 +512,25 @@ do
             encrypt
             break 
 	    ;;
-        "${options[8]}")
+	"${options[8]}")
+            #Configure Monitoring
+	    while [[ $USE_TELEGRAM_BOT != 'yes' ]]; do
+	    	echo "You need to configure your telegram bot for this"
+		configureTelegramBot
+	    done
+	    monitorSettings
+            break
+            ;;
+	"${options[9]}")
+            #stop monitor
+            if [ -f "monitor_pid.txt" ]; then
+                        echo "closing the old monitor"
+                        kill -9 `cat monitor_pid.txt`
+                        rm monitor_pid.txt
+            fi
+            break
+            ;;
+        "${options[10]}")
             #exit
 	    read -p "Do you want to encrypt the backup folder? [Y/N]: " yn
             case $yn in
@@ -422,7 +539,7 @@ do
 	      [N/n]* )
 		    echo "Dont forget to do it later!"; exit 1; break;;  
 	      esac
-
+	      
             exit 0
             ;;
         *) echo "invalid option $REPLY";;
