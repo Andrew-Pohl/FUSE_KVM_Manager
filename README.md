@@ -52,9 +52,10 @@ KVM_NAME = the name used when configuring the KVM (virsh list will give you a co
 IP_ADDR & ETH_ADDR = just set these to 0 or 1... they are not currently used
 DEFAULT_PASSWORD = Set this to "no" this will prompt the script to ask for the KVM user name and password when/if it needs them
 ```
+If you haven't created a kvm with the script then make a new csv file in ther settings folder called "validator_list.csv" and add 
+the following line:
 
-Note: please leave the v0,1,1,yes line at the bottom!. These a bug in the script that means it won't be able to create new
-KVMs without it. Will fix this shortly :)
+<YOUR KVM NAME>,1,1,no
 
 # Monitoring
 I have ported my monitoring python script to bash. The python script is now depricated and any further changes will be made here.
