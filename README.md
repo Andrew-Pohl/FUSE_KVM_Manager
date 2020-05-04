@@ -56,7 +56,16 @@ DEFAULT_PASSWORD = Set this to "no" this will prompt the script to ask for the K
 Note: please leave the v0,1,1,yes line at the bottom!. These a bug in the script that means it won't be able to create new
 KVMs without it. Will fix this shortly :)
 
-# Watch this space...
-I'm currently porting my system watcher app into bash and making it KVM friendly the manager will be able to configure 
-the thresholds and a cron job so it gets launched at regular intervals. The telegram bot will handle the alert forwarding
-and inbound requests (removing the need for a gmail account).   
+# Monitoring
+I have ported my monitoring python script to bash. The python script is now depricated and any further changes will be made here.
+The monitor gets called by the manager as a nohup task the monitor takes user defined inputs stored in the monitor_settings.txt
+file which gets populated by the manager. The monitor traverses into the KVMs and checks:
+```
+• CPU utalisation
+• Avaliable RAM
+• Avaliable Hard drive space
+• Balance of eth
+• All docker containers are currently running
+```
+If any of the thresholds are breached a telegram message will be sent to your bot. This should allow for easy monitoring 
+and help detect any potential issues on your nodes.
