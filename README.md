@@ -55,7 +55,7 @@ DEFAULT_PASSWORD = Set this to "no" this will prompt the script to ask for the K
 If you haven't created a kvm with the script then make a new csv file in ther settings folder called "validator_list.csv" and add 
 the following line:
 
-<YOUR KVM NAME>,1,1,no
+"YOUR KVM NAME",1,1,no
 
 # Monitoring
 I have ported my monitoring python script to bash. The python script is now depricated and any further changes will be made here.
