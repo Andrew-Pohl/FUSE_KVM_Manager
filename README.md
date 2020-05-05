@@ -18,10 +18,11 @@ The Manager allows the user to perform a number of task
 Make sure you give the script execute permissions
 
 • sudo chmod 777 FUSE_KVM_Manager.sh
+• sudo chmod 777 Validator_monitor.sh
 
 Then simply run the script with sudo privileges (the script pulls all dependencies on launch)
 
-• sudo ./FUSE_KVM_creator.sh
+• sudo ./FUSE_KVM_Manager.sh
 
 Follow the on screen menus and away you go.
 
