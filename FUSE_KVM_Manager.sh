@@ -245,27 +245,36 @@ EOF
 function updateKVMs()
 {
   #this assumes that all KVMs have been setup with this script i.e. has the same file structure and usernames
+  OLDIFS=$IFS   # Save current IFS
+  IFS=$'\n'      # Change IFS to new line
+
   [ ! -f $INPUT ] && { echo "$INPUT file not found"; exit 99; }
-  while read validator ip ethaddr defaultPassword
-  do
-    currentValidator=$validator
-    getIP $currentValidator
-    if [[ $defaultPassword == 'no' ]];
-    then
-      read -p "Please enter the username for $currentValidator: " tempUser
-      read -p -s "Please enter the password for $currentValidator: " tempPass
-      PASSWORD=$tempPass
-      USER=$tempUser
-    fi
-    echo "IP OF $currentValidator IS $IP"
+  for i in $(cat ${INPUT}); do
+	SAVEIFS=$IFS   # Save current IFS
+  	IFS=$','      # Change IFS to new line
+ 	splitCommaArr=($i) # split to array $names
+ 	IFS=$SAVEIFS
+
+	currentValidator=${splitCommaArr[0]}
+    	getIP $currentValidator
+    	if [[ ${splitCommaArr[3]} == 'no' ]];
+    	then
+      		read -p "Please enter the username for $currentValidator: " tempUser
+      		read -p "Please enter the password for $currentValidator: " tempPass
+      		PASSWORD=$tempPass
+      		USER=$tempUser
+    	fi
+    	echo "IP OF $currentValidator IS $IP"
 sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USER"@"$IP" << EOF
       echo "$PASSWORD" | sudo -S wget -O /home/"$USER"/fuse-validator/quickstart.sh https://raw.githubusercontent.com/fuseio/fuse-network/master/scripts/quickstart.sh;
       echo "$PASSWORD" | sudo -S chmod 777 /home/"$USER"/fuse-validator/quickstart.sh;
-      echo "$PASSWORD" | sudo -S ./quickstart.sh"
+      cd fuse-validator;
+	echo "$PASSWORD" | sudo -S /home/"$USER"/fuse-validator/quickstart.sh;
 EOF
-    PASSWORD=$DEFAULT_PASSWORD
-    USER=$DEFAULT_USER
-  done < $INPUT
+    	PASSWORD=$DEFAULT_PASSWORD
+    	USER=$DEFAULT_USER
+	echo $i
+  done
   IFS=$OLDIFS
   telegramSendMessage "Finished updating all KVMs :)"
 }
