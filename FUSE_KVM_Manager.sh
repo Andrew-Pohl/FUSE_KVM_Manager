@@ -456,7 +456,7 @@ function monitorSettings()
    read -p "do you want to start the monitor now [Y/N]: " runMon
    case $runMon in
           [Yy]* )
-		if [ -f "monitor_pid.txt" ]; then
+		if [ -f "settings/monitor_pid.txt" ]; then
 			echo "closing the old monitor"
 			kill -9 `cat settings/monitor_pid.txt`
 			rm settings/monitor_pid.txt
@@ -546,7 +546,7 @@ do
             ;;
 	"${options[9]}")
             #stop monitor
-            if [ -f "monitor_pid.txt" ]; then
+            if [ -f "settings/monitor_pid.txt" ]; then
                         echo "closing the old monitor"
                         kill -9 `cat settings/monitor_pid.txt`
                         rm settings/monitor_pid.txt
