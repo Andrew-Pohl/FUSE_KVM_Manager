@@ -274,7 +274,7 @@ EOF
     	PASSWORD=$DEFAULT_PASSWORD
     	USER=$DEFAULT_USER
 	echo $i
-  done
+done
   IFS=$OLDIFS
   telegramSendMessage "Finished updating all KVMs :)"
 }
@@ -316,54 +316,62 @@ function createBackupFolder()
       * ) echo "Please answer yes or no.";;
   esac
   
-  while read validator ip ethaddr defaultPassword
-  do
-    	  
-    skip="no"
-    currentValidator=$validator
-    #check if the folder for this validator exsists
-    dirExists='no'
-    if [ -d "../decryptedBackup/$currentValidator" ]; then
-      # Take action if $DIR exists. #
-      echo "backup for $currentValidator already exsists"
-      dirExists='yes'
-      if [[ $writeOver == "yes" ]];
-      then
-        rm -rf "../decryptedBackup/$currentValidator"
-      else
-        skip="yes"
-      fi 
-    fi
+  OLDIFS=$IFS   # Save current IFS
+  IFS=$'\n'      # Change IFS to new line
+
+  [ ! -f $INPUT ] && { echo "$INPUT file not found"; exit 99; }
+  for i in $(cat ${INPUT}); do
+        SAVEIFS=$IFS   # Save current IFS
+        IFS=$','      # Change IFS to new line
+        splitCommaArr=($i) # split to array $names
+        IFS=$SAVEIFS
+
+        currentValidator=${splitCommaArr[0]}
+        getIP $currentValidator
+       	  
+ 	skip="no"
+	#check if the folder for this validator exsists
+	dirExists='no'
+	if [ -d "../decryptedBackup/$currentValidator" ]; then
+      	# Take action if $DIR exists. #
+      		echo "backup for $currentValidator already exsists"
+      		dirExists='yes'
+      		if [[ $writeOver == "yes" ]];
+      		then
+        		rm -rf "../decryptedBackup/$currentValidator"
+      		else
+        		skip="yes"
+      		fi 
+    	fi
     
     
-    if [[ $skip != "yes" ]];
-    then
-      if [[ $defaultPassword == 'no' ]];
-      then
-        read -p "Please enter the username for $currentValidator: " tempUser
-        read -p -s "Please enter the password for $currentValidator: " tempPass
-        PASSWORD=$tempPass
-        USER=$tempUser
-      fi
-	    
-      getIP $currentValidator
-      echo "IP OF $currentValidator IS $IP"
+    	if [[ $skip != "yes" ]];
+    	then
+	     	if [[ ${splitCommaArr[3]} == 'no' ]];
+        	then
+                	read -p "Please enter the username for $currentValidator: " tempUser
+                	read -p "Please enter the password for $currentValidator: " tempPass
+                	PASSWORD=$tempPass
+                	USER=$tempUser
+        	fi
+	
+      		getIP $currentValidator
+      		echo "IP OF $currentValidator IS $IP"
 sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USER"@"$IP" << EOF
     echo "$PASSWORD" | sudo -S cp -r /home/"$USER"/fuse-validator/fusenet/config /home/"$USER"/config
     echo "$PASSWORD" | sudo -S cp  /home/"$USER"/fuse-validator/.env /home/"$USER"/config/.env
     echo "$PASSWORD" | sudo -S chown -R "$USER":"$USER" /home/"$USER"/config
 EOF
 
-    sshpass -p "$PASSWORD" scp -r "$USER"@"$IP":/home/"$USER"/config ../decryptedBackup/$currentValidator
+    		sshpass -p "$PASSWORD" scp -r "$USER"@"$IP":/home/"$USER"/config ../decryptedBackup/$currentValidator
     
 sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USER"@"$IP" << EOF
     echo "$PASSWORD" | sudo -S rm -r /home/"$USER"/config
 EOF
-    
-    PASSWORD=$DEFAULT_PASSWORD
-    USER=$DEFAULT_USER
-    fi
-  done < $INPUT
+   	fi
+    	PASSWORD=$DEFAULT_PASSWORD
+    	USER=$DEFAULT_USER
+  done
   
   IFS=$OLDIFS
   
