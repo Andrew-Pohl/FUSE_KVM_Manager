@@ -1,7 +1,7 @@
 #!/bin/bash
-INPUT=validator_list.csv
-TELEGRAM_DETAILS=telegram.txt
-MONITOR_SETTINGS=monitor_settings.txt
+INPUT=settings/validator_list.csv
+TELEGRAM_DETAILS=settings/telegram.txt
+MONITOR_SETTINGS=settings/monitor_settings.txt
 TELEGRAM_CHAT_ID=''
 TELEGRAM_BOT_KEY=''
 OLDIFS=$IFS
@@ -112,6 +112,17 @@ function configureTelegramBot()
 
 function setup()
 {
+  if [[ ! -d "logs" ]]
+  then
+	  mkdir logs
+  fi
+
+  if [[ ! -d "temp" ]]
+  then
+          mkdir temp
+  fi
+
+
   #download script depends
   sudo apt-get update
 
@@ -129,13 +140,16 @@ function createAndRunKVM()
   local arg1=$1
 
   #look through the list and take the last kvm name
-  [ ! -f $INPUT ] && { echo "$INPUT file not found"; exit 99; }
-  while read validator ip ethaddr
-  do
-    LASTVALIDATORINLIST=$validator
-  done < $INPUT
-  IFS=$OLDIFS
-
+  if [ -f $INPUT ] 
+  then 
+    while read validator ip ethaddr
+    do
+      LASTVALIDATORINLIST=$validator
+    done < $INPUT
+    IFS=$OLDIFS
+  else
+    LASTVALIDATORINLIST="v0"
+  fi
   echo "The last validator in the list $LASTVALIDATORINLIST"
 
   #strip the v off the front of the kvm name
@@ -175,7 +189,7 @@ function createAndRunKVM()
   --location 'http://archive.ubuntu.com/ubuntu/dists/bionic/main/installer-amd64/' \
   --noautoconsole \
   --wait=-1 \
-  --initrd-inject=ks-1804-minimalvm.cfg \
+  --initrd-inject=settings/ks-1804-minimalvm.cfg \
   --extra-args "ks=file:/ks-1804-minimalvm.cfg console=tty0 console=ttyS0,115200n8"
 
   sleep 1m
@@ -231,27 +245,36 @@ EOF
 function updateKVMs()
 {
   #this assumes that all KVMs have been setup with this script i.e. has the same file structure and usernames
+  OLDIFS=$IFS   # Save current IFS
+  IFS=$'\n'      # Change IFS to new line
+
   [ ! -f $INPUT ] && { echo "$INPUT file not found"; exit 99; }
-  while read validator ip ethaddr defaultPassword
-  do
-    currentValidator=$validator
-    getIP $currentValidator
-    if [[ $defaultPassword == 'no' ]];
-    then
-      read -p "Please enter the username for $currentValidator: " tempUser
-      read -p -s "Please enter the password for $currentValidator: " tempPass
-      PASSWORD=$tempPass
-      USER=$tempUser
-    fi
-    echo "IP OF $currentValidator IS $IP"
+  for i in $(cat ${INPUT}); do
+	SAVEIFS=$IFS   # Save current IFS
+  	IFS=$','      # Change IFS to new line
+ 	splitCommaArr=($i) # split to array $names
+ 	IFS=$SAVEIFS
+
+	currentValidator=${splitCommaArr[0]}
+    	getIP $currentValidator
+    	if [[ ${splitCommaArr[3]} == 'no' ]];
+    	then
+      		read -p "Please enter the username for $currentValidator: " tempUser
+      		read -p "Please enter the password for $currentValidator: " tempPass
+      		PASSWORD=$tempPass
+      		USER=$tempUser
+    	fi
+    	echo "IP OF $currentValidator IS $IP"
 sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USER"@"$IP" << EOF
       echo "$PASSWORD" | sudo -S wget -O /home/"$USER"/fuse-validator/quickstart.sh https://raw.githubusercontent.com/fuseio/fuse-network/master/scripts/quickstart.sh;
       echo "$PASSWORD" | sudo -S chmod 777 /home/"$USER"/fuse-validator/quickstart.sh;
-      echo "$PASSWORD" | sudo -S ./quickstart.sh"
+      cd fuse-validator;
+	echo "$PASSWORD" | sudo -S /home/"$USER"/fuse-validator/quickstart.sh;
 EOF
-    PASSWORD=$DEFAULT_PASSWORD
-    USER=$DEFAULT_USER
-  done < $INPUT
+    	PASSWORD=$DEFAULT_PASSWORD
+    	USER=$DEFAULT_USER
+	echo $i
+done
   IFS=$OLDIFS
   telegramSendMessage "Finished updating all KVMs :)"
 }
@@ -293,54 +316,62 @@ function createBackupFolder()
       * ) echo "Please answer yes or no.";;
   esac
   
-  while read validator ip ethaddr defaultPassword
-  do
-    	  
-    skip="no"
-    currentValidator=$validator
-    #check if the folder for this validator exsists
-    dirExists='no'
-    if [ -d "../decryptedBackup/$currentValidator" ]; then
-      # Take action if $DIR exists. #
-      echo "backup for $currentValidator already exsists"
-      dirExists='yes'
-      if [[ $writeOver == "yes" ]];
-      then
-        rm -rf "../decryptedBackup/$currentValidator"
-      else
-        skip="yes"
-      fi 
-    fi
+  OLDIFS=$IFS   # Save current IFS
+  IFS=$'\n'      # Change IFS to new line
+
+  [ ! -f $INPUT ] && { echo "$INPUT file not found"; exit 99; }
+  for i in $(cat ${INPUT}); do
+        SAVEIFS=$IFS   # Save current IFS
+        IFS=$','      # Change IFS to new line
+        splitCommaArr=($i) # split to array $names
+        IFS=$SAVEIFS
+
+        currentValidator=${splitCommaArr[0]}
+        getIP $currentValidator
+       	  
+ 	skip="no"
+	#check if the folder for this validator exsists
+	dirExists='no'
+	if [ -d "../decryptedBackup/$currentValidator" ]; then
+      	# Take action if $DIR exists. #
+      		echo "backup for $currentValidator already exsists"
+      		dirExists='yes'
+      		if [[ $writeOver == "yes" ]];
+      		then
+        		rm -rf "../decryptedBackup/$currentValidator"
+      		else
+        		skip="yes"
+      		fi 
+    	fi
     
     
-    if [[ $skip != "yes" ]];
-    then
-      if [[ $defaultPassword == 'no' ]];
-      then
-        read -p "Please enter the username for $currentValidator: " tempUser
-        read -p -s "Please enter the password for $currentValidator: " tempPass
-        PASSWORD=$tempPass
-        USER=$tempUser
-      fi
-	    
-      getIP $currentValidator
-      echo "IP OF $currentValidator IS $IP"
+    	if [[ $skip != "yes" ]];
+    	then
+	     	if [[ ${splitCommaArr[3]} == 'no' ]];
+        	then
+                	read -p "Please enter the username for $currentValidator: " tempUser
+                	read -p "Please enter the password for $currentValidator: " tempPass
+                	PASSWORD=$tempPass
+                	USER=$tempUser
+        	fi
+	
+      		getIP $currentValidator
+      		echo "IP OF $currentValidator IS $IP"
 sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USER"@"$IP" << EOF
     echo "$PASSWORD" | sudo -S cp -r /home/"$USER"/fuse-validator/fusenet/config /home/"$USER"/config
     echo "$PASSWORD" | sudo -S cp  /home/"$USER"/fuse-validator/.env /home/"$USER"/config/.env
     echo "$PASSWORD" | sudo -S chown -R "$USER":"$USER" /home/"$USER"/config
 EOF
 
-    sshpass -p "$PASSWORD" scp -r "$USER"@"$IP":/home/"$USER"/config ../decryptedBackup/$currentValidator
+    		sshpass -p "$PASSWORD" scp -r "$USER"@"$IP":/home/"$USER"/config ../decryptedBackup/$currentValidator
     
 sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USER"@"$IP" << EOF
     echo "$PASSWORD" | sudo -S rm -r /home/"$USER"/config
 EOF
-    
-    PASSWORD=$DEFAULT_PASSWORD
-    USER=$DEFAULT_USER
-    fi
-  done < $INPUT
+   	fi
+    	PASSWORD=$DEFAULT_PASSWORD
+    	USER=$DEFAULT_USER
+  done
   
   IFS=$OLDIFS
   
@@ -433,14 +464,14 @@ function monitorSettings()
    read -p "do you want to start the monitor now [Y/N]: " runMon
    case $runMon in
           [Yy]* )
-		if [ -f "monitor_pid.txt" ]; then
+		if [ -f "settings/monitor_pid.txt" ]; then
 			echo "closing the old monitor"
-			kill -9 `cat monitor_pid.txt`
-			rm monitor_pid.txt
+			kill -9 `cat settings/monitor_pid.txt`
+			rm settings/monitor_pid.txt
 		fi
-                nohup ./Validator_monitor.sh > monitor.log 2>&1 &
-		echo $! > monitor_pid.txt
-		echo "monitor proc ID = $(cat monitor_pid.txt)"
+                nohup ./Validator_monitor.sh > logs/monitor.log 2>&1 &
+		echo $! > settings/monitor_pid.txt
+		echo "monitor proc ID = $(cat settings/monitor_pid.txt)"
 		break
                 ;;
           [Nn]* )
@@ -523,10 +554,10 @@ do
             ;;
 	"${options[9]}")
             #stop monitor
-            if [ -f "monitor_pid.txt" ]; then
+            if [ -f "settings/monitor_pid.txt" ]; then
                         echo "closing the old monitor"
-                        kill -9 `cat monitor_pid.txt`
-                        rm monitor_pid.txt
+                        kill -9 `cat settings/monitor_pid.txt`
+                        rm settings/monitor_pid.txt
             fi
             break
             ;;
